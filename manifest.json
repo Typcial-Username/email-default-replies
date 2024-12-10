@@ -1,0 +1,39 @@
+{
+  "name": "Email Default Responses",
+  "description": "Add default responses to your email to increase productivity",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "Email Default Responses"
+  },
+  "permissions": ["activeTab", "tabs", "scripting"],
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://mail.google.com/*",
+        "*://outlook.live.com/*",
+        "*://outlook.office.com/*",
+        "*://mail.yahoo.com/*"
+      ],
+      "js": ["dist/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": [
+    "*://mail.google.com/*",
+    "*://outlook.live.com/*",
+    "*://outlook.office.com/*",
+    "*://mail.yahoo.com/*"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "email-default-responses@leviterry.dev",
+      "strict_min_version": "102.0"
+    }
+  }
+}
