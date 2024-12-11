@@ -1,4 +1,5 @@
 import * as Browser from "webextension-polyfill";
+import clients from "./clients.json";
 
 interface InjectButtonMessage {
   action: "injectButton";
@@ -10,9 +11,18 @@ interface InjectButtonResponse {
 
 console.log("[Background Script] Hello from background.ts");
 
+function getHostname(url: string): string {
+  const { hostname } = new URL(url);
+  return hostname;
+}
+
 Browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url) {
-    if (tab.url.startsWith("chrome://") || tab.url.startsWith("about:")) {
+    if (
+      tab.url.startsWith("chrome://") ||
+      tab.url.startsWith("about:") ||
+      !clients.includes(getHostname(tab.url))
+    ) {
       console.warn(`[Background Script] Ignoring tab with URL: ${tab.url}`);
       return;
     }
