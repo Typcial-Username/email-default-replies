@@ -1,67 +1,280 @@
-import { browser } from "webextension-polyfill";
+import * as Browser from "webextension-polyfill";
 
-console.log("Hello from content.ts");
+// --- Configuration ---
+const DEFAULT_RESPONSES: ResponseItem[] = [
+  { content: "Thank you for reaching out. I'll get back to you shortly!" },
+  { content: "Looking forward to connecting with you further." },
+];
 
-// Function to create the Default Response button
-function createButton(): HTMLButtonElement {
-  const defaultResponseButton = document.createElement("button");
-  defaultResponseButton.textContent = "Default Response";
-  defaultResponseButton.style.backgroundColor = "blue";
-  defaultResponseButton.style.color = "white";
-  defaultResponseButton.style.padding = "10px";
-  defaultResponseButton.style.border = "none";
-  defaultResponseButton.style.borderRadius = "5px";
-  defaultResponseButton.style.cursor = "pointer";
-  defaultResponseButton.style.margin = "10px";
-  defaultResponseButton.style.zIndex = "1000";
-  defaultResponseButton.id = "default-response-button";
+const storage = Browser.storage?.sync ?? Browser.storage.local;
 
-  defaultResponseButton.onclick = () => {
-    console.log("Default Response button clicked!");
-    addTextToEmailBody("This is a default response.");
-  };
-
-  return defaultResponseButton;
+// --- Interfaces ---
+interface ResponseItem {
+  title?: string; // Optional button title
+  content: string; // Actual response text
 }
 
-// Function to locate the "Send" button on the page
-function findSendButton(): HTMLElement | null {
-  // Find all elements with role="button" or <button> tags
-  const buttonCandidates = Array.from(
-    document.querySelectorAll('[role="button"], button, input[type="submit"]')
+interface StorageData {
+  customResponses?: ResponseItem[];
+}
+
+// --- Core Functions ---
+function createButton(): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.textContent = "✨ Default Response";
+  styleButton(button);
+  addButtonEventListeners(button);
+  return button;
+}
+
+function styleButton(button: HTMLButtonElement) {
+  button.style.cssText = `
+    background-color: #1a73e8;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+  `;
+}
+
+function addButtonEventListeners(button: HTMLButtonElement) {
+  button.onmouseover = () => (button.style.backgroundColor = "#174ea6");
+  button.onmouseleave = () => (button.style.backgroundColor = "#1a73e8");
+  button.onclick = () => openResponseModal();
+}
+
+function findEmailBody(): HTMLElement | null {
+  // Select all contenteditable elements
+  const contentEditableElements = document.querySelectorAll<HTMLElement>(
+    "div[contenteditable='true']"
   );
 
-  // Filter for elements with "Send" in their aria-label or text content
-  const sendButton = buttonCandidates.find((element) => {
+  // Filter elements to find the correct email body
+  for (const element of contentEditableElements) {
     const ariaLabel = element.getAttribute("aria-label")?.toLowerCase();
-    const textContent = element.textContent?.toLowerCase();
 
-    return (
-      (ariaLabel && ariaLabel.includes("send")) ||
-      (textContent && textContent.includes("send"))
-    );
-  });
-
-  if (sendButton) {
-    console.log("Send button found:", sendButton);
-    return sendButton as HTMLElement;
+    // Check for typical labels like "message body"
+    if (
+      ariaLabel?.includes("message body") ||
+      ariaLabel?.includes("compose") ||
+      element.closest("div")?.className.includes("allowTextSelection")
+    ) {
+      return element; // Return the email body element
+    }
   }
 
-  console.log("Send button not found.");
+  console.warn("[Content Script] Email body not found.");
   return null;
 }
 
-// Function to add text to the Gmail email body
+// --- Modal Functions ---
+function openResponseModal() {
+  const modalOverlay = createModalOverlay();
+  const modalContainer = createModalContainer();
+  const responseList = createResponseList();
+
+  loadResponses(responseList);
+
+  // Create horizzontal div to hold buttons
+  const buttonContainer = document.createElement("div");
+  buttonContainer.style.cssText = `display: flex; justify-content: space-between;`;
+
+  const grabButton = createModalButton(
+    "Grab From Email Content",
+    "#2196f3",
+    () => grabEmailContent(responseList)
+  );
+  const manualButton = createModalButton(
+    "Add Response Manually",
+    "#4caf50",
+    () => openManualResponseModal(responseList)
+  );
+
+  buttonContainer.append(grabButton, manualButton);
+
+  const closeButton = createModalButton("Close", "#e53935", () =>
+    modalOverlay.remove()
+  );
+
+  modalContainer.append(
+    createModalTitle("Manage Responses"),
+    responseList,
+    buttonContainer,
+    closeButton
+  );
+
+  modalOverlay.appendChild(modalContainer);
+  document.body.appendChild(modalOverlay);
+  loadResponses(responseList);
+}
+
+function createModalOverlay(): HTMLDivElement {
+  const overlay = document.createElement("div");
+  overlay.id = "response-modal";
+  overlay.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5); display: flex;
+    justify-content: center; align-items: center; z-index: 10000;
+  `;
+  return overlay;
+}
+
+function createModalContainer(): HTMLDivElement {
+  const container = document.createElement("div");
+  container.style.cssText = `
+    background: white; border-radius: 8px; padding: 16px;
+    width: 400px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  `;
+  return container;
+}
+
+function createModalTitle(text: string): HTMLHeadingElement {
+  const title = document.createElement("h2");
+  title.textContent = text;
+  title.style.marginBottom = "12px";
+  title.style.alignSelf = "center";
+  return title;
+}
+
+function createModalButton(
+  text: string,
+  color: string,
+  onClick: () => void
+): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.textContent = text;
+  button.style.cssText = `
+    width: 100%; margin: 8px 0; padding: 8px;
+    background-color: ${color}; color: white;
+    border: none; border-radius: 4px; cursor: pointer;
+  `;
+  button.onclick = onClick;
+  return button;
+}
+
+function createResponseList(): HTMLDivElement {
+  const responseList = document.createElement("div");
+  responseList.style.cssText = `max-height: 200px; overflow-y: auto;`;
+  return responseList;
+}
+
+// --- Storage Functions ---
+function loadResponses(responseList: HTMLElement) {
+  storage.get("customResponses").then((data: StorageData) => {
+    const responses = data.customResponses || DEFAULT_RESPONSES;
+    renderResponseList(responseList, responses);
+  });
+}
+
+function saveResponse(
+  title: string | undefined,
+  newResponse: string,
+  responseList: HTMLElement
+) {
+  storage.get("customResponses").then((data: StorageData) => {
+    const responses: ResponseItem[] = data.customResponses || [];
+    responses.push({ title, content: newResponse });
+    Browser.storage.sync.set({ customResponses: responses }).then(() => {
+      renderResponseList(responseList, responses);
+    });
+  });
+}
+
+function deleteResponse(index: number, responseList: HTMLElement) {
+  storage.get("customResponses").then((data: StorageData) => {
+    const responses = data.customResponses || [];
+    responses.splice(index, 1);
+    Browser.storage.sync.set({ customResponses: responses }).then(() => {
+      renderResponseList(responseList, responses);
+    });
+  });
+}
+
+function renderResponseList(
+  responseList: HTMLElement,
+  responses: ResponseItem[]
+) {
+  responseList.innerHTML = ""; // Clear the list
+
+  responses.forEach((response, index) => {
+    const row = document.createElement("div");
+    row.style.cssText = `
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      padding: 8px; 
+      background: #f9f9f9; 
+      border-radius: 4px; 
+      margin-bottom: 6px;
+    `;
+
+    // Response Button (title or trimmed content)
+    const responseButton = document.createElement("button");
+    responseButton.textContent = response.title || "Untitled Response"; // Fallback to "Untitled Response"
+    responseButton.title = response.content; // Tooltip with full content
+    responseButton.style.cssText = `
+      flex: 1;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: none;
+      border: none;
+      color: #1a73e8;
+      cursor: pointer;
+      font-size: 14px;
+    `;
+    responseButton.onclick = () => {
+      addTextToEmailBody(response.content);
+      document.getElementById("response-modal")?.remove();
+    };
+
+    // Copy to Clipboard Button
+    const copyButton = document.createElement("button");
+    copyButton.textContent = "📋";
+    copyButton.style.cssText = `
+      margin-right: 8px;
+      padding: 4px 8px;
+      background-color: #f1f1f1;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    `;
+    copyButton.onclick = () => {
+      navigator.clipboard.writeText(response.content);
+      console.log(`[Modal] Copied to clipboard: ${response.content}`);
+    };
+
+    // Trash/Delete Button
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "🗑️";
+    deleteButton.style.cssText = `
+      background-color: #e53935;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 4px 8px;
+    `;
+    deleteButton.onclick = () => deleteResponse(index, responseList);
+
+    // Append elements
+    row.appendChild(responseButton);
+    row.appendChild(copyButton);
+    row.appendChild(deleteButton);
+    responseList.appendChild(row);
+  });
+}
+
 function addTextToEmailBody(text: string) {
-  // Locate the email body using the aria-label, role, and contenteditable attributes
-  const emailBody = document.querySelector(
-    "div[aria-label='Message Body'][role='textbox'][contenteditable='true']"
-  ) as HTMLElement | null;
-
+  const emailBody = findEmailBody();
   if (emailBody) {
-    console.log("Email body found:", emailBody);
-
-    // Focus the editable area to make it active
+    const formattedText = text.replace(/\n/g, "<br>"); // Render new lines as <br>
     emailBody.focus();
 
     // Use Selection and Range API to insert text
@@ -76,77 +289,197 @@ function addTextToEmailBody(text: string) {
       selection?.addRange(range);
     }
 
-    // Insert the text
-    const textNode = document.createTextNode(text);
-    range.insertNode(textNode);
+    // Create a temporary container to hold the HTML content
+    const tempContainer = document.createElement("div");
+    tempContainer.innerHTML = formattedText;
 
-    // Move the cursor after the inserted text
-    range.setStartAfter(textNode);
-    range.setEndAfter(textNode);
+    // Insert each node (to preserve HTML structure like <br>)
+    const fragment = document.createDocumentFragment();
+    while (tempContainer.firstChild) {
+      const child = tempContainer.firstChild;
+      fragment.appendChild(child);
+    }
+
+    range.deleteContents(); // Replace any current selection
+    range.insertNode(fragment);
+
+    // Move the cursor to the end of the inserted content
+    range.setStartAfter(emailBody.lastChild || emailBody);
+    range.collapse(true);
     selection?.removeAllRanges();
     selection?.addRange(range);
 
     console.log("Text added to email body:", text);
   } else {
-    console.log("Email body not found.");
+    alert("Email body not found!");
   }
 }
 
-// Function to observe dynamic content changes
-function observeDynamicContent() {
-  console.log(
-    "[Content Script] Starting MutationObserver to watch for dynamic content..."
-  );
+function grabEmailContent(responseList: HTMLElement) {
+  const emailBody = findEmailBody() as HTMLElement;
+  if (!emailBody) alert("Email body not found!");
 
-  const observer = new MutationObserver(() => {
-    const success = addDefaultResponseButton();
-    if (success) {
-      console.log(
-        "[Content Script] Default Response button added. Disconnecting observer..."
-      );
-      observer.disconnect(); // Stop observing after successful addition
+  const title = prompt("Enter the title:");
+
+  let content = emailBody.innerText.trim() || ""; // Grab plain text content
+
+  // Define signature patterns to look for
+  const signaturePatterns = [
+    /--/g, // Common signature separator
+    /best regards[\s\S]*/i, // Matches "Best regards" and anything after (case-insensitive)
+    /sincerely[\s\S]*/i, // Matches "Sincerely" and anything after
+    /thanks[\s\S]*/i, // Matches "Thanks" and anything after
+    /sent from my [\s\S]*/i, // "Sent from my iPhone/Android/Outlook"
+    /sent via [\s\S]*/i, // "Sent via..."
+  ];
+
+  // Iterate over patterns and strip content after the first match
+  for (const pattern of signaturePatterns) {
+    const match = content.match(pattern);
+    if (match) {
+      content = content.substring(0, match.index).trim();
+      break; // Stop at the first valid match
     }
-  });
+  }
 
-  observer.observe(document.body, { childList: true, subtree: true });
-  console.log("[Content Script] MutationObserver started.");
+  saveResponse(title?.trim(), content, responseList);
 }
 
-// Function to add the Default Response button
-function addDefaultResponseButton(): boolean {
-  console.log("[Content Script] Looking for Send button...");
+function openManualResponseModal(responseList: HTMLElement) {
+  // Remove any existing modal
+  const existingModal = document.getElementById("manual-response-modal");
+  if (existingModal) existingModal.remove();
 
-  const sendButton = findSendButton();
+  // Create the modal overlay
+  const modalOverlay = document.createElement("div");
+  modalOverlay.id = "manual-response-modal";
+  modalOverlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  `;
 
-  if (sendButton) {
-    // Check if the Default Response button already exists
-    if (!document.getElementById("default-response-button")) {
-      console.log(
-        "[Content Script] Send button found. Adding Default Response button..."
-      );
+  // Create the modal container
+  const modalContainer = document.createElement("div");
+  modalContainer.style.cssText = `
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 400px;
+    max-width: 90%;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  `;
 
-      const responseButton = createButton();
-      sendButton.parentElement?.appendChild(responseButton);
+  // Title input
+  const titleInput = document.createElement("input");
+  titleInput.type = "text";
+  titleInput.placeholder = "Enter title (optional)";
+  titleInput.style.cssText = `
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  `;
 
-      return true;
+  // Response textarea
+  const responseTextarea = document.createElement("textarea");
+  responseTextarea.placeholder = "Enter your custom response here...";
+  responseTextarea.style.cssText = `
+    width: 100%;
+    height: 120px;
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+  `;
+
+  // Buttons container
+  const buttonsContainer = document.createElement("div");
+  buttonsContainer.style.cssText = `
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  `;
+
+  // Cancel button
+  const cancelButton = document.createElement("button");
+  cancelButton.textContent = "Cancel";
+  cancelButton.style.cssText = `
+    padding: 8px 12px;
+    background-color: #e53935;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  `;
+  cancelButton.onclick = () => modalOverlay.remove();
+
+  // Save button
+  const saveButton = document.createElement("button");
+  saveButton.textContent = "Save";
+  saveButton.style.cssText = `
+    padding: 8px 12px;
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  `;
+  saveButton.onclick = () => {
+    const title = titleInput.value.trim();
+    const content = responseTextarea.value.trim();
+
+    if (content) {
+      saveResponse(title || undefined, content, responseList);
+      modalOverlay.remove();
     } else {
-      console.log(
-        "[Content Script] Default Response button already exists. Skipping."
-      );
+      alert("Response content cannot be empty.");
     }
-  } else {
-    console.log("[Content Script] Send button not found.");
+  };
+
+  // Append elements to the modal
+  buttonsContainer.appendChild(cancelButton);
+  buttonsContainer.appendChild(saveButton);
+  modalContainer.appendChild(titleInput);
+  modalContainer.appendChild(responseTextarea);
+  modalContainer.appendChild(buttonsContainer);
+  modalOverlay.appendChild(modalContainer);
+  document.body.appendChild(modalOverlay);
+}
+
+// --- Button Injection ---
+function observeAndInjectButton() {
+  const observer = new MutationObserver(() => {
+    if (injectButtonIfNeeded()) observer.disconnect();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
+function injectButtonIfNeeded(): boolean {
+  const sendButton = document.querySelector(
+    '[aria-label*="send"]'
+  ) as HTMLElement;
+  if (sendButton && !document.getElementById("default-response-button")) {
+    const button = createButton();
+    button.id = "default-response-button";
+    sendButton.parentElement?.appendChild(button);
+    return true;
   }
   return false;
 }
 
-// Listen for a message from the background script
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "injectButton") {
-    console.log("Received message to inject button.");
-    const success = addDefaultResponseButton();
-    sendResponse({
-      status: success ? "Button add success" : "Button add failure",
-    });
-  }
-});
+// --- Initialization ---
+observeAndInjectButton();
+console.log("[Content Script] Initialized.");

@@ -7,7 +7,7 @@
     "default_popup": "src/popup.html",
     "default_title": "Email Default Responses"
   },
-  "permissions": ["activeTab", "tabs", "scripting"],
+  "permissions": ["activeTab", "tabs", "scripting", "storage"],
   "background": {
     "service_worker": "dist/background.js",
     "type": "module"
@@ -30,6 +30,9 @@
     "*://outlook.office.com/*",
     "*://mail.yahoo.com/*"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  },
   "browser_specific_settings": {
     "gecko": {
       "id": "email-default-responses@leviterry.dev",
