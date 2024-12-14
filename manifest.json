@@ -4,7 +4,7 @@
   "version": "1.0",
   "manifest_version": 3,
   "action": {
-    "default_popup": "src/popup.html",
+    "default_popup": "src/popup/popup.html",
     "default_title": "Email Default Responses"
   },
   "permissions": ["activeTab", "tabs", "scripting", "storage"],

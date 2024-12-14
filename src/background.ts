@@ -1,13 +1,6 @@
 import * as Browser from "webextension-polyfill";
+import type { InjectButtonMessage, InjectButtonResponse } from "./types";
 import clients from "./clients.json";
-
-interface InjectButtonMessage {
-  action: "injectButton";
-}
-
-interface InjectButtonResponse {
-  status?: string;
-}
 
 console.log("[Background Script] Hello from background.ts");
 
@@ -31,19 +24,10 @@ Browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
     try {
       // Inject content script dynamically
-      const results = await Browser.scripting
-        .executeScript({
-          target: { tabId },
-          files: ["dist/content.js"],
-        })
-        .catch((error) => {
-          console.error(
-            `[Background Script] Failed to inject content script: ${
-              error.message || error
-            }`
-          );
-          throw error;
-        });
+      const results = await Browser.scripting.executeScript({
+        target: { tabId },
+        files: ["dist/content.js"],
+      });
 
       if (!results || results.length === 0) {
         throw new Error("Content script injection failed.");
@@ -51,7 +35,41 @@ Browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
       console.log("[Background Script] Content script injected successfully.");
 
-      // Wait for content script to initialize and send message
+      // Wait for content script readiness
+      const readyListener = new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error("Content script readiness timeout"));
+        }, 5000); // Timeout after 5 seconds
+
+        const listener = (
+          message: unknown,
+          sender: Browser.Runtime.MessageSender
+        ): true | undefined => {
+          // Type guard to check if message is of type { action: string }
+          if (
+            typeof message === "object" &&
+            message !== null &&
+            "action" in message &&
+            typeof (message as any).action === "string"
+          ) {
+            const { action } = message as { action: string };
+            if (action === "contentScriptReady" && sender.tab?.id === tabId) {
+              console.log("[Background Script] Content script is ready.");
+              Browser.runtime.onMessage.removeListener(listener);
+              clearTimeout(timeout);
+              resolve();
+            }
+          }
+
+          return true; // Explicitly return true
+        };
+
+        Browser.runtime.onMessage.addListener(listener);
+      });
+
+      await readyListener;
+
+      // Send message to inject button after content script confirms readiness
       const response = (await Browser.tabs.sendMessage(tabId, {
         action: "injectButton",
       } as InjectButtonMessage)) as InjectButtonResponse;
@@ -59,12 +77,12 @@ Browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       console.log(
         `[Background Script] Response: ${response.status || "No response"}`
       );
-    } catch (error: Error | any) {
+    } catch (error: any) {
       if (error.message.includes("context invalidated")) {
         console.warn(
           "[Background Script] Extension context invalidated, reloading..."
         );
-        Browser.runtime.reload(); // Reload extension to reset the context
+        Browser.runtime.reload();
       } else {
         console.error(`[Background Script] Error: ${error.message || error}`);
       }
@@ -73,31 +91,37 @@ Browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 Browser.runtime.onMessage.addListener(
-  (message: unknown, sender: Browser.Runtime.MessageSender, sendResponse) => {
+  (
+    message: unknown,
+    sender: Browser.Runtime.MessageSender,
+    sendResponse: (response: unknown) => void
+  ): true | undefined => {
     if (!sender.tab) {
-      console.warn([
-        "[Background Script] Ignoring message from unknown sender:",
-        sender,
-      ]);
+      console.warn("[Background Script] Ignoring message from unknown sender.");
       return;
     }
 
-    try {
-      const { action } = message as InjectButtonMessage;
+    if (
+      typeof message === "object" &&
+      message !== null &&
+      "action" in message &&
+      typeof (message as any).action === "string"
+    ) {
+      const { action } = message as { action: string };
+
       if (action === "injectButton") {
         console.log("[Background Script] Injecting button...");
         sendResponse({ status: "injected" });
-      } else {
-        console.warn(`[Background Script] Unknown action: ${action}`);
+        return true; // Allow async sendResponse handling
+      } else if (action == "contentScriptReady") {
+        console.log("[Background Script] Content script is ready.");
+        // sendResponse({ status: "ready" });
+        return true;
       }
-    } catch (error: Error | any) {
-      console.error(
-        `[Background Script] Failed to process message: ${
-          error.message || error
-        }`
-      );
+
+      console.warn(`[Background Script] Unknown action: ${action}`);
     }
 
-    return true; // Ensure the listener returns a valid type
+    return true;
   }
 );

@@ -1,5 +1,5 @@
 {
-  "name": "email-default-reply",
+  "name": "email-default-replies",
   "version": "1.0.0",
   "description": "Add default responses to your email to increase productivity",
   "main": "dist/background.js",
@@ -8,13 +8,17 @@
     "url": "https://github.com/Typcial-Username/email-default-replies.git"
   },
   "dependencies": {
-    "zip-a-folder": "^3.1.8"
-  },
-  "devDependencies": {
     "webextension-polyfill": "^0.12.0"
   },
+  "devDependencies": {
+    "ts-loader": "^9.5.1",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^5.1.4",
+    "zip-a-folder": "^3.1.8"
+  },
   "scripts": {
-    "build": "bun build ./src/\\background.ts ./src/content.ts ./src/popup.ts --outdir dist",
-    "package": ""
+    "clean": "rm -rf dist",
+    "build": "webpack --config webpack.config.js",
+    "package": "bun run build && bun run scripts/package.ts"
   }
 }
