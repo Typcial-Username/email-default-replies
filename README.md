@@ -11,7 +11,7 @@ If you send a lot of emails, and a lot of them end up having the same boilerplat
 ## Usage
 
 1. Install the extension
-2. Go you your favorite email client (currently supports gmail, outlook, and yahoo)
+2. Go you your favorite email client (currently supports Gmail, Outlook, and Yahoo)
 3. Press the "Default Responce Button"
 4. Add or choose a default responce
 5. Finish composing

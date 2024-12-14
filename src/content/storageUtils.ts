@@ -1,20 +1,49 @@
-import * as Browser from "webextension-polyfill";
-import { renderResponseList } from "./modals";
-import { ResponseItem, StorageData } from "../types";
+import * as Browser from 'webextension-polyfill'
+import { renderResponseList } from './modals'
+import { ResponseItem, StorageData } from '../types'
 
-const storage = Browser.storage?.sync ?? Browser.storage.local;
+const isStorageAvailable = Browser.storage?.sync || Browser.storage.local
+const storage = isStorageAvailable
+  ? (Browser.storage?.sync ?? Browser.storage.local)
+  : null
+
+const STORAGE_KEY = 'customResponses'
 
 const DEFAULT_RESPONSES: ResponseItem[] = [
-  { content: "Thank you for reaching out. I'll get back to you shortly!" },
-  { content: "Looking forward to connecting with you further." },
-];
+  {
+    title: 'Reach Out',
+    content: "Thank you for reaching out. I'll get back to you shortly!",
+  },
+  {
+    title: 'Connect',
+    content: 'Looking forward to connecting with you further.',
+  },
+]
+
+// Function to safely access storage
+async function safeStorageAccess<T>(
+  action: () => Promise<T>
+): Promise<T | undefined> {
+  try {
+    if (!storage) throw new Error('Storage API is not available.')
+    return await action()
+  } catch (error) {
+    console.error('Storage access error:', error)
+    return undefined
+  }
+}
 
 export function loadResponses(): Promise<ResponseItem[]> {
   return new Promise((resolve, reject) => {
-    storage.get("customResponses").then((data: StorageData) => {
-      resolve(data.customResponses || DEFAULT_RESPONSES);
-    });
-  });
+    safeStorageAccess(() => storage!.get(STORAGE_KEY)).then(
+      (data: StorageData | undefined) => {
+        resolve(data?.customResponses || DEFAULT_RESPONSES)
+      }
+    )
+    // storage.get('customResponses').then((data: StorageData) => {
+    //   resolve(data.customResponses || DEFAULT_RESPONSES)
+    // })
+  })
 }
 
 export function saveResponse(
@@ -22,13 +51,18 @@ export function saveResponse(
   newResponse: string,
   responseList: HTMLElement
 ) {
-  storage.get("customResponses").then((data: StorageData) => {
-    const responses: ResponseItem[] = data.customResponses || [];
-    responses.push({ title, content: newResponse });
-    storage.set({ customResponses: responses }).then(() => {
-      renderResponseList(responseList, responses);
-    });
-  });
+  safeStorageAccess(() => storage!.get(STORAGE_KEY)).then(
+    (data: StorageData | undefined) => {
+      const responses: ResponseItem[] = data?.customResponses || []
+      responses.push({ title, content: newResponse })
+
+      safeStorageAccess(() =>
+        storage!.set({ customResponses: responses })
+      ).then(() => {
+        renderResponseList(responseList, responses)
+      })
+    }
+  )
 }
 
 // --- Update and Delete Functions
@@ -37,38 +71,45 @@ export function updateResponse(
   response: ResponseItem,
   newResponse: ResponseItem
 ) {
-  storage.get("customResponses").then((data: StorageData) => {
-    const responses = data.customResponses || [];
+  safeStorageAccess(() => storage!.get(STORAGE_KEY)).then(
+    (data: StorageData | undefined) => {
+      const responses = data?.customResponses || []
 
-    // Find the index of the response by comparing content
-    const index = responses.findIndex(
-      (item) =>
-        item.title === response.title && item.content === response.content
-    );
+      // Find the index of the response
+      const index = responses.findIndex(
+        (item) =>
+          item.title === response.title && item.content === response.content
+      )
 
-    if (index == -1) {
-      console.error("Failed to update response: Response not found.");
+      if (index === -1) {
+        console.error('Failed to update response: Response not found.')
+        return
+      }
+
+      // Update and save
+      responses[index] = newResponse
+      safeStorageAccess(() =>
+        storage!.set({ customResponses: responses })
+      ).then(() => {
+        console.log('Response updated:', newResponse)
+        const responseList = document.getElementById('response-list')
+        if (responseList) renderResponseList(responseList, responses)
+      })
     }
-
-    // Update the response at the found index
-    responses[index] = newResponse;
-
-    // Save updated responses back to storage
-    storage.set({ customResponses: responses }).then(() => {
-      console.log("Response updated:", newResponse);
-      // Optionally re-render the list
-      const responseList = document.getElementById("response-list");
-      if (responseList) renderResponseList(responseList, responses);
-    });
-  });
+  )
 }
 
 export function deleteResponse(index: number, responseList: HTMLElement) {
-  storage.get("customResponses").then((data: StorageData) => {
-    const responses = data.customResponses || [];
-    responses.splice(index, 1);
-    Browser.storage.sync.set({ customResponses: responses }).then(() => {
-      renderResponseList(responseList, responses);
-    });
-  });
+  safeStorageAccess(() => storage!.get('customResponses')).then(
+    (data: StorageData | undefined) => {
+      const responses = data?.customResponses || []
+      responses.splice(index, 1)
+
+      safeStorageAccess(() =>
+        storage!.set({ customResponses: responses })
+      ).then(() => {
+        renderResponseList(responseList, responses)
+      })
+    }
+  )
 }

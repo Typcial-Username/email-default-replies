@@ -1,19 +1,19 @@
 // --- Interfaces ---
 interface ResponseItem {
-  title?: string; // Optional button title
-  content: string; // Actual response text
+  title?: string // Optional button title
+  content: string // Actual response text
 }
 
 interface StorageData {
-  customResponses?: ResponseItem[];
+  customResponses?: ResponseItem[]
 }
 
 interface InjectButtonMessage {
-  action: "injectButton";
+  action: 'injectButton'
 }
 
 interface InjectButtonResponse {
-  status?: string;
+  status?: string
 }
 
-export { ResponseItem, StorageData, InjectButtonMessage, InjectButtonResponse };
+export { ResponseItem, StorageData, InjectButtonMessage, InjectButtonResponse }

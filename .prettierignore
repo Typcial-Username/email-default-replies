@@ -1,0 +1,8 @@
+# Artifacts
+dist
+
+# Github actions
+.github/*
+
+# Node Modules
+node_modules

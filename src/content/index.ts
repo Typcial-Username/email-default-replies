@@ -1,15 +1,24 @@
-import * as Browser from "webextension-polyfill";
-import { observeAndInjectButton } from "./DOMUtils";
+import * as Browser from 'webextension-polyfill'
+import { observeAndInjectButton } from './DOMUtils'
 
-Browser.runtime
-  .sendMessage({ action: "contentScriptReady" })
-  .then((response) => {
-    console.log("Background script response:", response);
+// Wait for the DOM to be fully loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.self !== window.top) {
+      return
+    }
+    sendReadyMessage()
+    observeAndInjectButton()
   })
-  .catch((error) => {
-    console.error("Failed to send message to background script:", error);
-  });
+} else {
+  sendReadyMessage()
+  observeAndInjectButton()
+}
 
-// --- Initialization ---
-observeAndInjectButton();
-console.log("[Content Script] Initialized.");
+function sendReadyMessage() {
+  Browser.runtime
+    .sendMessage({ action: 'contentScriptReady' })
+    .catch((error) => {
+      console.error('Failed to send message to background script:', error)
+    })
+}

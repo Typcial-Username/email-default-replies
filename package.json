@@ -11,6 +11,7 @@
     "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
+    "clean-webpack-plugin": "^4.0.0",
     "ts-loader": "^9.5.1",
     "webpack": "^5.97.1",
     "webpack-cli": "^5.1.4",
@@ -18,7 +19,8 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "webpack --config webpack.config.js",
-    "package": "bun run build && bun run scripts/package.ts"
+    "prettify": "npx prettier . --config .prettierrc --write --log-level warn",
+    "build": "npm run prettify && npm run clean && webpack --config webpack.config.js",
+    "package": "npm run prettify && npm run build && node scripts/package.ts"
   }
 }

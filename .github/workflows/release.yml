@@ -3,7 +3,7 @@ name: Create Extension Release
 on:
   push:
     tags:
-      - "v*" # Runs only when a tag matching 'v*' (e.g., v1.0.0) is pushed.
+      - 'v*' # Runs only when a tag matching 'v*' (e.g., v1.0.0) is pushed.
 
 jobs:
   release:
@@ -42,3 +42,5 @@ jobs:
           files: ./extension.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 6: TODO: Publish the extension to the Chrome Web Store
