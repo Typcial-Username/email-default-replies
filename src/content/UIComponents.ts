@@ -71,14 +71,6 @@ export function darkenHexColor(hex: string, percent: number): string {
   const newG = darken(g)
   const newB = darken(b)
 
-  console.log(
-    `Made ${hex} ${percent}% darker: #${newR
-      .toString(16)
-      .padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB
-      .toString(16)
-      .padStart(2, '0')}`
-  )
-
   // Convert back to hex and return
   return `#${newR.toString(16).padStart(2, '0')}${newG
     .toString(16)

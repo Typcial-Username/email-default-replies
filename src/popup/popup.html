@@ -5,21 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Email Default Reply</title>
     <link rel="stylesheet" href="popup.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+    />
   </head>
   <body>
     <div class="container">
-      <button id="close-ext-menu" class="close-button" title="Close">
-        &times;
-      </button>
-      <h1>Email Default Responces</h1>
+      <header class="header">
+        <h1 style="text-align: center">Email Default Responces</h1>
+
+        <button id="close-ext-menu" title="Close">&times;</button>
+      </header>
+
+      <hr />
+
+      <h2 class="small-header">Settings:</h2>
+
+      <div class="settings-container">
+        <span class="input-container">
+          <label for="toggle" class="toggle-label">Enable: </label>
+          <label class="switch">
+            <input type="checkbox" id="enable-toggle" class="toggle-btn" />
+            <span class="slider round"></span>
+            <span class="state-text"></span>
+          </label>
+        </span>
+      </div>
+
+      <hr />
+
+      <h2 class="small-header">Manage Responses:</h2>
+
+      <button id="refresh" class="main-button">🔃 Refresh</button>
 
       <!-- Response List -->
       <div id="response-list" class="response-list"></div>
 
-      <!-- Add New Response -->
-      <button id="add-response" class="add-response-btn">
-        Add Custom Response
-      </button>
+      <div class="button-container">
+        <!-- Add New Response -->
+        <button id="grab-email" class="main-button">
+          Grab From Email Content
+        </button>
+        <button id="manual-response" class="main-button">Add Response</button>
+      </div>
+
+      <hr />
+
+      <h2 class="small-header">See a Problem?</h2>
+
+      <!-- Report Problem Button -->
+      <a
+        href="https://github.com/Typcial-Username/email-default-replies/issues"
+        class="link"
+        ><i class="fa-solid fa-bug"></i> Report Issue</a
+      >
+
+      <!-- Contribute Button -->
+      <a
+        href="https://github.com/Typcial-Username/email-default-replies/"
+        class="link"
+        ><i class="fa-solid fa-code-fork"></i> Contribute</a
+      >
     </div>
 
     <script src="../../dist/popup.js" defer></script>

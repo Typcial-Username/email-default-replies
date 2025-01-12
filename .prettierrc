@@ -5,6 +5,5 @@
   "tabWidth": 2,
   "bracketSpacing": true,
   "arrowParens": "always",
-  "endOfLine": "lf",
-  "trimTrailingWhitespace": true
+  "endOfLine": "lf"
 }

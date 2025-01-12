@@ -16,4 +16,14 @@ interface InjectButtonResponse {
   status?: string
 }
 
-export { ResponseItem, StorageData, InjectButtonMessage, InjectButtonResponse }
+interface Settings {
+  enabled: boolean
+}
+
+export {
+  ResponseItem,
+  StorageData,
+  InjectButtonMessage,
+  InjectButtonResponse,
+  Settings,
+}

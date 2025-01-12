@@ -27,7 +27,7 @@ export function renderResponseList(
         align-items: center; 
         justify-content: space-between; 
         padding: 0.5rem; 
-        background: #f9f9f9; 
+        background: #FCF5E5; 
         border-radius: 0.25rem; 
         margin-bottom: 0.375rem;
       `
@@ -42,15 +42,24 @@ export function renderResponseList(
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        background: none;
+        background: transparent;
         border: none;
         color: #1a73e8;
         cursor: pointer;
         font-size: 1rem;
+        margin: 0.25rem 0.5rem;
       `
     responseButton.onclick = () => {
       addTextToEmailBody(response.content)
       document.getElementById('response-modal')?.remove()
+    }
+
+    responseButton.onmouseover = () => {
+      responseButton.style.textDecoration = 'underline'
+    }
+
+    responseButton.onmouseleave = () => {
+      responseButton.style.textDecoration = 'none'
     }
 
     // Edit Button
@@ -69,13 +78,21 @@ export function renderResponseList(
       openEditModal(response)
     }
 
+    editButton.onmouseover = () => {
+      editButton.style.backgroundColor = darkenHexColor('#f1f1f1', 10)
+    }
+
+    editButton.onmouseleave = () => {
+      editButton.style.backgroundColor = '#f1f1f1'
+    }
+
     // Copy to Clipboard Button
     const copyButton = document.createElement('button')
     copyButton.textContent = '📋'
     copyButton.style.cssText = `
         margin-right: 0.5rem;
         padding: 0.25rem 0.5rem;
-        background-color: #f1f1f1;
+        background-color: #d8d8d8;
         border: none;
         border-radius: 0.25rem;
         cursor: pointer;
@@ -83,7 +100,14 @@ export function renderResponseList(
     copyButton.onclick = () => {
       navigator.clipboard.writeText(response.content)
       alert('Response copied to clipboard!')
-      console.log(`[Modal] Copied to clipboard: ${response.content}`)
+    }
+
+    copyButton.onmouseover = () => {
+      copyButton.style.backgroundColor = darkenHexColor('#d8d8d8', 10)
+    }
+
+    copyButton.onmouseleave = () => {
+      copyButton.style.backgroundColor = '#d8d8d8'
     }
 
     // Trash/Delete Button
@@ -98,6 +122,14 @@ export function renderResponseList(
         padding: 0.25rem 0.5rem;
       `
     deleteButton.onclick = () => deleteResponse(index, responseList)
+
+    deleteButton.onmouseover = () => {
+      deleteButton.style.backgroundColor = darkenHexColor('#e53935', 10)
+    }
+
+    deleteButton.onmouseleave = () => {
+      deleteButton.style.backgroundColor = '#e53935'
+    }
 
     // Append elements
     row.appendChild(responseButton)
@@ -122,14 +154,14 @@ export function createModalOverlay(): HTMLDivElement {
 export function createModalContainer(): HTMLDivElement {
   const container = document.createElement('div')
   container.style.cssText = `
-      background: white; border-radius: 0.5rem; padding: 1rem;
+      background: #EDEADE; border-radius: 0.5rem; padding: 1rem;
       width: 25rem; box-shadow: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.1);
     `
   return container
 }
 
 export function createModalTitle(text: string): HTMLHeadingElement {
-  const title = document.createElement('h2')
+  const title = document.createElement('h1')
   title.textContent = text
   title.style.marginBottom = '0.75rem'
   // Center the title
@@ -145,7 +177,7 @@ export function createModalButton(
   const button = document.createElement('button')
   button.textContent = text
   button.style.cssText = `
-      width: 100%; margin: 0.5rem 0; padding: 0.5rem;
+      width: 100%; margin: 0.5rem 0.25rem; padding: 0.5rem;
       background-color: ${color}; color: white;
       border: none; border-radius: 0.25rem; cursor: pointer;
     `
@@ -377,4 +409,9 @@ export function openEditModal(response: ResponseItem) {
 
   modalOverlay.appendChild(modalContainer)
   document.body.appendChild(modalOverlay)
+}
+
+export function closeModals() {
+  document.getElementById('response-modal')?.remove()
+  document.getElementById('manual-response-modal')?.remove()
 }

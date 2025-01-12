@@ -1,3 +1,5 @@
+import * as Browser from 'webextension-polyfill'
+
 import { saveResponse } from './storageUtils'
 import { createButton } from './UIComponents'
 

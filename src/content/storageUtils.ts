@@ -1,6 +1,6 @@
 import * as Browser from 'webextension-polyfill'
 import { renderResponseList } from './modals'
-import { ResponseItem, StorageData } from '../types'
+import { ResponseItem, Settings, StorageData } from '../types'
 
 const isStorageAvailable = Browser.storage?.sync || Browser.storage.local
 const storage = isStorageAvailable
@@ -112,4 +112,22 @@ export function deleteResponse(index: number, responseList: HTMLElement) {
       })
     }
   )
+}
+
+export function clearResponses(responseList: HTMLElement) {
+  safeStorageAccess(() => storage!.remove('customResponses')).then(() => {
+    renderResponseList(responseList, [])
+  })
+}
+
+export function getSettings(): Promise<any> {
+  return safeStorageAccess(() => storage!.get('settings'))
+}
+
+export function saveSettings(settings: Settings) {
+  safeStorageAccess(() => storage!.set({ settings }))
+}
+
+export function clearStorage() {
+  safeStorageAccess(() => storage!.clear())
 }
