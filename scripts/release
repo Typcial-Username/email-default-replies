@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Cross-platform Release Script
+# Merge dev into main, create a tag, and push it to trigger a GitHub Action.
+
+# Check if Git is installed
+if ! command -v git &>/dev/null; then
+  echo "Error: Git is not installed."
+  exit 1
+fi
+
+# Ensure we're on the 'dev' branch
+CURRENT_BRANCH=$(git branch --show-current)
+if [ "$CURRENT_BRANCH" != "dev" ]; then
+  echo "Switching to 'dev' branch..."
+  git checkout dev
+fi
+
+# Pull the latest changes
+echo "Pulling latest changes for 'dev'..."
+git pull origin dev
+
+# Merge 'dev' into 'main'
+echo "Switching to 'main' branch..."
+git checkout main
+git pull origin main
+
+echo "Merging 'dev' into 'main'..."
+git merge dev
+
+# Prompt for a tag version
+read -p "Enter the release version (e.g., v1.0.0): " VERSION
+
+# Validate tag format
+if [[ ! $VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Error: Invalid version format. Use 'vX.Y.Z' (e.g., v1.0.0)."
+  exit 1
+fi
+
+# Create and push the tag
+echo "Creating tag: $VERSION"
+git tag -a "$VERSION" -m "Release $VERSION"
+
+echo "Pushing tag to origin..."
+git push origin "$VERSION"
+
+echo "✅ Release $VERSION created and pushed successfully!"

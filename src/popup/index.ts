@@ -2,20 +2,33 @@ import * as Browser from 'webextension-polyfill'
 
 import {
   deleteResponse,
-  getSettings,
+  // getSettings,
   loadResponses,
 } from '../content/storageUtils'
 import { openEditModal, openManualResponseModal } from '../content/modals'
 import { ResponseItem, Settings } from '../types'
 import { darkenHexColor } from '../content/UIComponents'
 
-const responseList = document.getElementById('response-list') as HTMLDivElement
-
 const settings: Settings = {
   enabled: true,
 }
 
 console.log('[Popup Script] Popup script loaded.')
+
+// const grabEmailButton = document.getElementById(
+//   'grab-email'
+// ) as HTMLButtonElement
+const responseList = document.getElementById('response-list') as HTMLDivElement
+
+const manualResponseButton = document.getElementById(
+  'manual-response'
+) as HTMLButtonElement
+const closeButton = document.getElementById(
+  'close-ext-menu'
+) as HTMLButtonElement
+// const enableToggle = document.getElementById(
+//   'enable-toggle'
+// ) as HTMLInputElement
 
 // Load responses from storage
 await loadResponses().then((responses) => {
@@ -24,25 +37,16 @@ await loadResponses().then((responses) => {
   }
 })
 
-await getSettings().then((data: Settings) => {
-  if (data) {
-    settings.enabled = data.enabled
-    enableToggle.checked = settings.enabled
-  }
-})
+// async function getSettings() {
+//   Browser.runtime.sendMessage({ action: 'getSettings' }).then((response) => {
+//     console.log('[Popup Script] Got settings:', response)
+//   })
+// }
 
-// const grabEmailButton = document.getElementById(
-//   'grab-email'
-// ) as HTMLButtonElement
-const manualResponseButton = document.getElementById(
-  'manual-response'
-) as HTMLButtonElement
-const closeButton = document.getElementById(
-  'close-ext-menu'
-) as HTMLButtonElement
-const enableToggle = document.getElementById(
-  'enable-toggle'
-) as HTMLInputElement
+// ;() =>
+//   getSettings().then(() => {
+//     console.log('[Popup Script] Settings loaded:', settings)
+//   })
 
 if (
   !responseList ||
@@ -59,25 +63,30 @@ if (
   throw new Error(errorMessage)
 }
 
-enableToggle.addEventListener('change', (event: Event) => {
-  event.preventDefault()
-  console.log({ event })
-  console.log('[Popup Script] Toggling extension...')
+// enableToggle.addEventListener('change', (event: Event) => {
+//   event.preventDefault()
 
-  if (enableToggle.checked) {
-    let stateText = document.getElementsByClassName(
-      'state-text'
-    )[0] as HTMLSpanElement
+//   console.log('[Popup Script] Toggling extension... to', enableToggle.checked)
 
-    stateText.textContent = 'ON'
-  } else {
-    let stateText = document.getElementsByClassName(
-      'state-text'
-    )[0] as HTMLSpanElement
+//   if (enableToggle.checked) {
+//     let stateText = document.getElementsByClassName(
+//       'state-text'
+//     )[0] as HTMLSpanElement
 
-    stateText.textContent = 'OFF'
-  }
-})
+//     stateText.textContent = 'ON'
+//   } else {
+//     let stateText = document.getElementsByClassName(
+//       'state-text'
+//     )[0] as HTMLSpanElement
+
+//     stateText.textContent = 'OFF'
+//   }
+
+//   Browser.runtime.sendMessage({
+//     action: 'saveSettings',
+//     data: { enabled: enableToggle.checked },
+//   })
+// })
 
 // grabEmailButton.addEventListener('click', () => {
 //   console.log('[Popup Script] Requesting email content...')

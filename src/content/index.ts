@@ -5,6 +5,32 @@ import {
   observeAndInjectButton,
 } from './DOMUtils'
 import { closeModals } from './modals'
+import { getSettings, saveSettings } from './storageUtils'
+import { Settings } from '../types'
+
+let Settings: Settings = {
+  enabled: true,
+}
+
+// Get the settings from storage
+getSettings().then((settings: Settings) => {
+  // console.log('[Content Script] Got settings:', settings)
+  Settings = settings
+
+  if (Object.keys(Settings).length === 0) {
+    Settings = {
+      enabled: true,
+    }
+
+    saveSettings(Settings)
+  }
+
+  Browser.runtime
+    .sendMessage({ action: 'contentScriptReady' })
+    .catch((error) => {
+      console.error('Failed to send message to background script:', error)
+    })
+})
 
 // Wait for the DOM to be fully loaded
 if (document.readyState === 'loading') {
@@ -16,8 +42,14 @@ if (document.readyState === 'loading') {
     observeAndInjectButton()
   })
 } else {
+  // console.log("[Content Script] Document loaded, checking 'enabled' setting.")
+  // if (Settings.enabled) {
+  //   console.log(
+  //     '[Content Script] Enabled, sending ready message and observing.'
+  //   )
   sendReadyMessage()
   observeAndInjectButton()
+  // }
 }
 
 document.addEventListener('click', (event) => {
@@ -55,7 +87,6 @@ Browser.runtime.onMessage.addListener(
       }
 
       if (action === 'grabEmailContent') {
-        console.log("[Content Script] Recieved 'grabEmailContent' message.")
         grabEmailContent(responseList)
         sendResponse({ status: 'success' })
       }
@@ -67,7 +98,6 @@ Browser.runtime.onMessage.addListener(
         addTextToEmailBody: string
       }
 
-      console.log('[Content Script] Received addTextToEmailBody message:', text)
       addTextToEmailBody(text)
     }
   }

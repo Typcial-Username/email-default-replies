@@ -82,8 +82,7 @@ export function grabEmailContent(responseList: HTMLElement) {
   // Improved signature patterns
   const signaturePatterns = [
     /(--|__|-\s+)[\s\S]*$/m, // Matches "--", "__", or "- " as signature markers
-    /best regards[\s\S]*$/im, // Matches "Best regards" (case-insensitive)
-    /kind regards[\s\S]*$/im, // Matches "Kind regards" (case-insensitive)
+    /[a-z\s]*regards[\s\S]*$/im, // Matches any word(s) followed by "regards"
     /thanks(?:,?[\s\S]*)?$/im, // Matches "Thanks" or "Thanks,"
     /sincerely[\s\S]*$/im, // Matches "Sincerely"
     /sent from my .+$/im, // Matches "Sent from my iPhone/Android/etc."
@@ -115,10 +114,29 @@ export function injectButtonIfNeeded(): boolean {
   const sendButton = document.querySelector(
     '[aria-label*="send"]'
   ) as HTMLElement
-  if (sendButton && !document.getElementById('default-response-button')) {
+
+  if (sendButton && !document.getElementById('default-response-container')) {
+    // Create a wrapper div to isolate our button from Gmail's button group
+    const wrapper = document.createElement('div')
+    wrapper.id = 'default-response-container'
+    wrapper.style.cssText = `
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 8px;
+      position: relative;
+      isolation: isolate;
+    `
+
     const button = createButton()
-    button.id = 'default-response-button'
-    sendButton.parentElement?.appendChild(button)
+    wrapper.appendChild(button)
+
+    // Find the button group container (parent of send button)
+    const buttonGroup =
+      sendButton.closest('[role="toolbar"]') || sendButton.parentElement
+
+    // Insert our wrapper *after* the button group, not inside it
+    buttonGroup?.parentElement?.insertBefore(wrapper, buttonGroup.nextSibling)
+
     return true
   }
   return false

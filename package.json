@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@types/webextension-polyfill": "^0.12.1",
+    "chrome-webstore-upload-cli": "^3.3.1",
     "ts-loader": "^9.5.1",
     "webpack": "^5.97.1",
     "webpack-cli": "^5.1.4",
@@ -20,7 +21,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "prettify": "npx prettier . --config .prettierrc --write --log-level warn",
-    "build": "npm run prettify && npm run clean && webpack --config webpack.config.js",
-    "package": "npm run prettify && npm run build && node scripts/package.ts"
+    "build": "npm run clean && webpack --config webpack.config.js",
+    "package": "npm run build && bun scripts/package.ts"
   }
 }

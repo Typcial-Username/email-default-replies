@@ -91,7 +91,6 @@ export function updateResponse(
       safeStorageAccess(() =>
         storage!.set({ customResponses: responses })
       ).then(() => {
-        console.log('Response updated:', newResponse)
         const responseList = document.getElementById('response-list')
         if (responseList) renderResponseList(responseList, responses)
       })

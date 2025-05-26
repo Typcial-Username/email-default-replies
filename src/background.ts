@@ -1,6 +1,11 @@
 import * as Browser from 'webextension-polyfill'
-import type { InjectButtonMessage, InjectButtonResponse } from './types'
+import type {
+  InjectButtonMessage,
+  InjectButtonResponse,
+  Settings,
+} from './types'
 import clients from './clients.json'
+import { getSettings, saveSettings } from './content/storageUtils'
 
 function getHostname(url: string): string {
   const { hostname } = new URL(url)
@@ -67,8 +72,8 @@ Browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       const response = (await Browser.tabs.sendMessage(tabId, {
         action: 'injectButton',
       } as InjectButtonMessage)) as InjectButtonResponse
-    } catch (error: any) {
-      if (error.message.includes('context invalidated')) {
+    } catch (error: Error | any) {
+      if (error.message.toLowerCase().includes('context invalidated')) {
         console.warn(
           '[Background Script] Extension context invalidated, reloading...'
         )
@@ -97,13 +102,22 @@ Browser.runtime.onMessage.addListener(
       typeof (message as any).action === 'string'
     ) {
       const { action } = message as { action: string }
-
       if (action === 'injectButton') {
         sendResponse({ status: 'injected' })
         return true // Allow async sendResponse handling
       } else if (action == 'contentScriptReady') {
         sendResponse({ status: 'ready' })
         return true
+      } else if (action === 'getSettings') {
+        // console.log('[Background Script] Received getSettings message.')
+        getSettings().then((data) => {
+          sendResponse(data)
+        })
+      } else if (action === 'saveSettings') {
+        const { data } = message as { action: 'saveSettings'; data: Settings }
+
+        // Save settings to storage
+        saveSettings(data)
       }
 
       console.warn(`[Background Script] Unknown action: ${action}`)

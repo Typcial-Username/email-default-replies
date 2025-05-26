@@ -3,6 +3,11 @@
   "description": "Add default responses to your email to increase productivity",
   "version": "1.0",
   "manifest_version": 3,
+  "icons": {
+    "16": "src/images/icons/16.png",
+    "48": "src/images/icons/48.png",
+    "128": "src/images/icons/128.png"
+  },
   "action": {
     "default_popup": "src/popup/popup.html",
     "default_title": "Email Default Responses"

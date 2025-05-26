@@ -13,7 +13,7 @@ jobs:
     steps:
       # Step 1: Check out the repository
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Step 2: Set up Node.js and Bun
       - name: Set up Node.js and Bun
@@ -32,15 +32,22 @@ jobs:
 
       # Step 5: Create GitHub Release
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           body: |
-            🚀 New release of the Email Default Reply extension!
+            🚀 New release of the Email Default Responces extension!
             - Automatic build and packaging
           files: ./extension.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 6: TODO: Publish the extension to the Chrome Web Store
+      # # Step 6: TODO: Publish the extension to the Chrome Web Store
+      # - name: Publish to Chrome Web Store
+      #   run: bun run scripts/publish.ts
+      #   env: 
+      #     extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+      #     client-id: ${{ secrets.CHROME_CLIENT_ID }}
+      #     client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+      #     refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
