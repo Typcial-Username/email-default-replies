@@ -8,6 +8,7 @@ const DIST = path.resolve(ROOT, 'dist')
 const IMAGES = path.resolve(ROOT, 'src/images')
 const MANIFEST = path.resolve(ROOT, 'manifest.json')
 const OUTPUT = path.resolve(ROOT, 'extension.zip')
+const POPUP = path.resolve(ROOT, 'src/popup/')
 
 async function zipExtension() {
   const tempFolder = path.resolve(ROOT, 'temp')
@@ -37,9 +38,27 @@ async function zipExtension() {
 
     // Copy manifest.json
     if (fs.existsSync(MANIFEST)) {
-      fs.copyFileSync(MANIFEST, path.join(tempFolder, 'manifest.json'))
+      const manifest = JSON.parse(fs.readFileSync(MANIFEST, 'utf-8'))
+      // Update icon paths in manifest
+      if (manifest.icons) {
+        for (const size in manifest.icons) {
+          if (manifest.icons[size]) {
+            // Convert relative paths to absolute paths
+            manifest.icons[size] = manifest.icons[size].replace('src/', '');
+          }
+        }
+      }
+
+      fs.writeFileSync(path.join(tempFolder, 'manifest.json'), JSON.stringify(manifest, null, 2))
     } else {
       throw new Error('manifest.json not found. Aborting.')
+    }
+
+    // Copy popup folder
+    if (fs.existsSync(POPUP)) {
+      fs.cpSync(POPUP, path.join(tempFolder, 'popup'), { recursive: true })
+    } else {
+      console.warn('Warning: popup folder not found. Skipping.')
     }
 
     // Zip the temp folder

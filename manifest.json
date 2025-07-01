@@ -6,10 +6,11 @@
   "icons": {
     "16": "src/images/icons/16.png",
     "48": "src/images/icons/48.png",
+    "96": "src/images/icons/96.png",
     "128": "src/images/icons/128.png"
   },
   "action": {
-    "default_popup": "src/popup/popup.html",
+    "default_popup": "popup/popup.html",
     "default_title": "Email Default Responses"
   },
   "permissions": ["activeTab", "tabs", "scripting", "storage"],

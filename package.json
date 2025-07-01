@@ -21,7 +21,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "prettify": "npx prettier . --config .prettierrc --write --log-level warn",
-    "build": "npm run clean && webpack --config webpack.config.js",
-    "package": "npm run build && bun scripts/package.ts"
+    "build": "bun run clean && webpack --config webpack.config.js",
+    "package": "bun run build && bun scripts/package.ts"
   }
 }
