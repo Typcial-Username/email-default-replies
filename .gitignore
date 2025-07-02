@@ -4,3 +4,4 @@ coverage
 tests
 extension.zip
 .dccache
+temp/*
