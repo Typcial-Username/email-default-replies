@@ -1,6 +1,6 @@
-import { ZipAFolder } from 'zip-a-folder'
-import fs from 'fs'
-import path from 'path'
+const archiver = require('archiver')
+const fs = require('fs')
+const path = require('path')
 
 // Paths
 const ROOT = path.resolve(__dirname, '..')
@@ -9,6 +9,33 @@ const IMAGES = path.resolve(ROOT, 'src/images')
 const MANIFEST = path.resolve(ROOT, 'manifest.json')
 const OUTPUT = path.resolve(ROOT, 'extension.zip')
 const POPUP = path.resolve(ROOT, 'src/popup/')
+
+async function createZip(sourceFolder: string, outputPath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const output = fs.createWriteStream(outputPath)
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Sets the compression level
+    })
+
+    output.on('close', () => {
+      console.log(`Created zip file with ${archive.pointer()} total bytes`)
+      resolve()
+    })
+
+    archive.on('error', (err: any) => {
+      reject(err)
+    })
+
+    // Pipe archive data to the file
+    archive.pipe(output)
+
+    // Append files from the source folder
+    archive.directory(sourceFolder, false)
+
+    // Finalize the archive
+    archive.finalize()
+  })
+}
 
 async function zipExtension() {
   const tempFolder = path.resolve(ROOT, 'temp')
@@ -62,7 +89,7 @@ async function zipExtension() {
     }
 
     // Zip the temp folder
-    await ZipAFolder.zip(tempFolder, OUTPUT)
+    await createZip(tempFolder, OUTPUT)
 
     console.log(`🎉 Extension zipped successfully: ${OUTPUT}`)
   } catch (error: any) {
