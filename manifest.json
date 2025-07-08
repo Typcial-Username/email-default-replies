@@ -24,6 +24,7 @@
         "*://mail.google.com/*",
         "*://outlook.live.com/*",
         "*://outlook.office.com/*",
+        "*://outlook.office365.com/*",
         "*://mail.yahoo.com/*"
       ],
       "js": ["dist/content.js"],
@@ -35,6 +36,7 @@
     "*://mail.google.com/*",
     "*://outlook.live.com/*",
     "*://outlook.office.com/*",
+    "*://outlook.office365.com/*",
     "*://mail.yahoo.com/*"
   ],
   "content_security_policy": {
